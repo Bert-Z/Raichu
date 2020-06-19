@@ -1,0 +1,3 @@
+[submodule "third/phxrpc"]
+	path = third/phxrpc
+	url = https://github.com/Tencent/phxrpc.git
