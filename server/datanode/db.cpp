@@ -1,19 +1,34 @@
 #include "db.h"
+#include <iostream>
 
 namespace raichu
 {
-    void db::dbPut(const std::string key, const std::string value)
+    namespace server
     {
-        (*kv)[key] = value;
-    }
+        namespace db
+        {
+            void db::dbPut(const std::string key, const std::string value)
+            {
+                kvs[key] = value;
+            }
 
-    const std::string &db::dbRead(const std::string key)
-    {
-        return (*kv).at(key);
-    }
+            const std::string db::dbRead(const std::string key)
+            {
+                if (kvs.find(key) == kvs.end())
+                    return key + " not found";
 
-    void db::dbDelete(const std::string key)
-    {
-        (*kv).erase(key);
-    }
+                return kvs.at(key);
+            }
+
+            void db::dbDelete(const std::string key)
+            {
+                kvs.erase(key);
+            }
+
+            const int db::dbSize()
+            {
+                return kvs.size();
+            }
+        } // namespace db
+    }     // namespace server
 } // namespace raichu

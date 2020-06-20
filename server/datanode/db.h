@@ -6,19 +6,29 @@
 
 namespace raichu
 {
-    class db
+    namespace server
     {
-    private:
-        using kvmap = std::unordered_map<std::string, std::string>;
-        using ptr = std::unique_ptr<kvmap>;
-        /* data */
-        ptr kv;
+        namespace db
+        {
+            using kvmap = std::unordered_map<std::string, std::string>;
 
-    public:
-        db() : kv(new kvmap) {}
+            class db
+            {
+            private:
+                /* data */
+                kvmap kvs;
 
-        void dbPut(const std::string key, const std::string value);
-        const std::string &dbRead(const std::string key);
-        void dbDelete(const std::string key);
-    };
+            public:
+                db():kvs() {}
+
+                void dbPut(const std::string key, const std::string value);
+
+                const std::string dbRead(const std::string key);
+
+                void dbDelete(const std::string key);
+
+                const int dbSize();
+            };
+        } // namespace db
+    }     // namespace server
 } // namespace raichu
