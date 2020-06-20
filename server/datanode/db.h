@@ -16,10 +16,13 @@ namespace raichu
             {
             private:
                 /* data */
+                // For storage
                 kvmap kvs;
+                // For distinguish
+                std::string name;
 
             public:
-                db():kvs() {}
+                db(const std::string &name) : kvs(), name(name) {}
 
                 void dbPut(const std::string key, const std::string value);
 
