@@ -1,6 +1,3 @@
-[submodule "third/phxrpc"]
-	path = third/phxrpc
-	url = https://github.com/Tencent/phxrpc.git
 [submodule "third/grpc"]
 	path = third/grpc
 	url = https://github.com/grpc/grpc
