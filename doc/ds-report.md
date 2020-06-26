@@ -2,13 +2,12 @@
 
 ## System Environment
 
+- Ubuntu18.04
+- Zookeeper-3.4.13
 
+## Zookeeper Cluster Install & Configuration
 
-
-
-## Zookeeper Install & Configuration
-
-### 1. Zookeeper Install
+### 1. Zookeeper Cluster Install
 
 ```shell
 #!/bin/sh
@@ -28,6 +27,9 @@ sudo mv zookeeper-3.4.13 /usr/local/zookeeper/zookeeper-3.4.13
 # create the soft link to zk dir
 sudo ln -s /usr/local/zookeeper/zookeeper-3.4.13 /usr/local/zookeeper/apache-zookeeper
 
+# add two more nodes
+cp -rf /usr/local/zookeeper/zookeeper-3.4.13   /usr/local/zookeeper/zookeeper-node2
+cp -rf /usr/local/zookeeper/zookeeper-3.4.13   /usr/local/zookeeper/zookeeper-node3
 ```
 
 ### 2. Modify Env Path
@@ -57,57 +59,115 @@ cp zoo_sample.cfg zoo.cfg
 vim zoo.cfg
 ```
 
-Make  `dataDir=/usr/local/zookeeper/data`
+Node1
 
 ```shell
-# The number of milliseconds of each tick
+#zookeeper时间单元，单位为毫秒
 tickTime=2000
-# The number of ticks that the initial
-# synchronization phase can take
+#集群中的follower服务器(F)与leader服务器(L)之间 初始连接 时能容忍的最多心跳数（tickTime的数量）。
 initLimit=10
-# The number of ticks that can pass between
-# sending a request and getting an acknowledgement
+# 集群中的follower服务器(F)与leader服务器(L)之间 请求和应答 之间能容忍的最多心跳数（tickTime的数量）。
 syncLimit=5
-# the directory where the snapshot is stored.
-# do not use /tmp for storage, /tmp here is just
-# example sakes.
-
-
-# 只需要修改此处为zookeeper数据存放位置
-dataDir=/usr/local/zookeeper/data
-# the port at which the clients will connect
+# data数据目录
+dataDir=/usr/local/zookeeper/zookeeper-3.4.13/data
+# 客户端连接端口
 clientPort=2181
-# the maximum number of client connections.
-# increase this if you need to handle more clients
+# 客户端最大连接数
 #maxClientCnxns=60
-#
-# Be sure to read the maintenance section of the
-# administrator guide before turning on autopurge.
-#
-# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
-#
-# The number of snapshots to retain in dataDir
+# 需要保留的快照数目
 #autopurge.snapRetainCount=3
-# Purge task interval in hours
-# Set to "0" to disable auto purge feature
-#autopurge.purgeInterval=1             
+# 是否开启自动清理事务日志和快照功能 0 不开启，1表示开启
+#autopurge.purgeInterval=1
+#集群配置 
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
 ```
 
-### 4. Run
+Node2
 
 ```shell
-cd /usr/local/zookeeper/apache-zookeeper/bin
+#zookeeper时间单元，单位为毫秒
+tickTime=2000
+#集群中的follower服务器(F)与leader服务器(L)之间 初始连接 时能容忍的最多心跳数（tickTime的数量）。
+initLimit=10
+# 集群中的follower服务器(F)与leader服务器(L)之间 请求和应答 之间能容忍的最多心跳数（tickTime的数量）。
+syncLimit=5
+# data数据目录
+dataDir=/usr/local/zookeeper/zookeeper-node2/data
+# 客户端连接端口
+clientPort=2182
+# 客户端最大连接数
+#maxClientCnxns=60
+# 需要保留的快照数目
+#autopurge.snapRetainCount=3
+# 是否开启自动清理事务日志和快照功能 0 不开启，1表示开启
+#autopurge.purgeInterval=1
+#集群配置 
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
+```
 
-# run
-./zkServer.sh start
+Node3
 
-ZooKeeper JMX enabled by default
-Using config: /usr/local/zookeeper/apache-zookeeper/bin/../conf/zoo.cfg
-Starting zookeeper ... STARTED
+```shell
+#zookeeper时间单元，单位为毫秒
+tickTime=2000
+#集群中的follower服务器(F)与leader服务器(L)之间 初始连接 时能容忍的最多心跳数（tickTime的数量）。
+initLimit=10
+# 集群中的follower服务器(F)与leader服务器(L)之间 请求和应答 之间能容忍的最多心跳数（tickTime的数量）。
+syncLimit=5
+# data数据目录
+dataDir=//usr/local/zookeeper/zookeeper-node3/data
+# 客户端连接端口
+clientPort=2183
+# 客户端最大连接数
+#maxClientCnxns=60
+# 需要保留的快照数目
+#autopurge.snapRetainCount=3
+# 是否开启自动清理事务日志和快照功能 0 不开启，1表示开启
+#autopurge.purgeInterval=1
+#集群配置 
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
+```
+
+
+
+### 4. ZK-run.sh
+
+```shell
+#!/bin/bash
+
+# run node1
+cd /usr/local/zookeeper/zookeeper-3.4.13/bin
+sudo ./zkServer.sh start
+
+# run node2
+cd /usr/local/zookeeper/zookeeper-node2/bin
+sudo ./zkServer.sh start
+
+# run node3
+cd /usr/local/zookeeper/zookeeper-node3/bin
+sudo ./zkServer.sh start
 
 # show state
+cd /usr/local/zookeeper/zookeeper-3.4.13/bin
 ./zkServer.sh status 
-ZooKeeper JMX enabled by default
-Using config: /usr/local/zookeeper/apache-zookeeper/bin/../conf/zoo.cfg
-Mode: standalone
+cd /usr/local/zookeeper/zookeeper-node2/bin
+./zkServer.sh status 
+cd /usr/local/zookeeper/zookeeper-node3/bin
+./zkServer.sh status 
 ```
+
+### 5. C API Install
+
+```shell
+cd /usr/local/zookeeper/apache-zookeeper/src/c
+make CFLAGS=-Wno-error=format-overflow 
+sudo make install
+sudo ldconfig
+```
+
