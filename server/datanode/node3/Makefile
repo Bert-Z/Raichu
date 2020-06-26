@@ -18,14 +18,14 @@ PROTOC = protoc
 GRPC_CPP_PLUGIN = grpc_cpp_plugin
 GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
-PROTOS_PATH = ../../rpc-proto/
+PROTOS_PATH = ../../../rpc-proto/
 
-RPCSERVICE_PATH = ../utils/rpcservice/
+RPCSERVICE_PATH = ../../utils/rpcservice/
 
 OPT = -pipe -fno-ident 
 LDFLAGS+= $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops  -D_REENTRANT -lzookeeper_mt 
 
-ZK_PATH = ../utils/zk/
+ZK_PATH = ../../utils/zk/
 
 INC += -I.  -I/usr/local/include/zookeeper
 		 
@@ -34,11 +34,11 @@ LIB += -lrt -lm -lz
 
 vpath %.proto $(PROTOS_PATH)
 
-all: master
+all: node3
 
-master: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(ZK_PATH)zk_cpp.o master.o
+node3: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(ZK_PATH)zk_cpp.o node3.o
 	$(CXX) $^ $(LDFLAGS) -o $@ $(LIB) $(INC) 
 
 clean:
-	rm -f *.o master
+	rm -f *.o node3
     

@@ -4,7 +4,7 @@ CXX = g++
 OPT = -pipe -fno-ident 
 #-z defs -e version
 
-CFLAGS += $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops -MMD -D_REENTRANT -std=c++11 -lzookeeper_mt 
+CFLAGS += $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops  -D_REENTRANT -std=c++11 -lzookeeper_mt 
 
 ifeq ($(MEMCHECK),1)
 CFLAGS += -DMEMCHECK
@@ -35,11 +35,8 @@ all:$(TARGET)
 $(TARGET):$(OBJ)
 	@$(CXX) -o $@ $^ $(CFLAGS) $(LIB) 
 	
-%.o: %.cpp Makefile
-	@$(CXX) $(CFLAGS) -c -pg -o $@ $< $(INC) 
-	
-%.o: %.c Makefile
-	@$(CC) $(CFLAGS) -c -pg -o $@ $< $(INC) 	
+%.o: %.cpp
+	@$(CXX) $(CFLAGS) -c -pg -o $@ $< $(INC) 	
 	
 clean:
 	@echo  $(OBJ) $(DEL_D) ../bin/$(TARGET) $(TARGET)

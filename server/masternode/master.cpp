@@ -2,30 +2,32 @@
 #include "../utils/zk/zk_cpp.h"
 
 raichu::server::zk::zk_cpp zk;
+using raichu::server::Status;
+using raichu::server::KVServiceImpl;
 
 // rpc sevice implement
-raichu::server::Status raichu::server::KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
+Status KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
                                                             KVResponse *response)
 {
   response->set_message("");
   return Status::OK;
 }
 
-raichu::server::Status raichu::server::KVServiceImpl::Read(ServerContext *context, const KVRequest *request,
+Status KVServiceImpl::Read(ServerContext *context, const KVRequest *request,
                                                            KVResponse *response)
 {
   response->set_message("Read " + request->key() + " success.");
   return Status::OK;
 }
 
-raichu::server::Status raichu::server::KVServiceImpl::Put(ServerContext *context, const KVRequest *request,
+Status KVServiceImpl::Put(ServerContext *context, const KVRequest *request,
                                                           KVResponse *response)
 {
   response->set_message("Put " + request->key() + "--" + request->value() + " success.");
   return Status::OK;
 }
 
-raichu::server::Status raichu::server::KVServiceImpl::Delete(ServerContext *context, const KVRequest *request,
+Status KVServiceImpl::Delete(ServerContext *context, const KVRequest *request,
                                                              KVResponse *response)
 {
   response->set_message("Delete " + request->key() + " success.");
@@ -78,7 +80,7 @@ void zkinit(raichu::server::zk::zoo_rc &flag)
     std::vector<raichu::server::zk::zoo_acl_t> acl;
     acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
     // initialize node size as 0
-    flag = zk.create_persistent_node(path2.c_str(), 0, acl);
+    flag = zk.create_persistent_node(path2.c_str(), "0", acl);
     if (flag != raichu::server::zk::z_ok)
     {
       printf("try to create node2 failed, code[%d][%s]\n",
@@ -86,14 +88,13 @@ void zkinit(raichu::server::zk::zoo_rc &flag)
       return;
     }
   }
-
   ret = zk.exists_node(path3.c_str(), nullptr, true);
   if (ret != raichu::server::zk::z_ok)
   {
     std::vector<raichu::server::zk::zoo_acl_t> acl;
     acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
     // initialize node size as 0
-    flag = zk.create_persistent_node(path3.c_str(), 0, acl);
+    flag = zk.create_persistent_node(path3.c_str(), "0", acl);
     if (flag != raichu::server::zk::z_ok)
     {
       printf("try to create node3 failed, code[%d][%s]\n",
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
   raichu::server::zk::zoo_rc flag = raichu::server::zk::z_ok;
   zkinit(flag);
   if (flag != raichu::server::zk::z_ok)
-    return 1;
+    return 0;
 
   // master server address as localhost:50051
   raichu::server::RunServer("0.0.0.0:50051");
