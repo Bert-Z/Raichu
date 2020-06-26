@@ -38,13 +38,15 @@ PROTOS_PATH = .
 
 vpath %.proto $(PROTOS_PATH)
 
-all: rpc_client rpc_server 
+all: rpc.pb.o rpc.grpc.pb.o 
 
-rpc_client: rpc.pb.o rpc.grpc.pb.o rpc_client.o
-	$(CXX) $^ $(LDFLAGS) -o $@
+# all: rpc_client rpc_server 
 
-rpc_server: rpc.pb.o rpc.grpc.pb.o rpc_server.o
-	$(CXX) $^ $(LDFLAGS) -o $@
+# rpc_client: rpc.pb.o rpc.grpc.pb.o rpc_client.o
+# 	$(CXX) $^ $(LDFLAGS) -o $@
+
+# rpc_server: rpc.pb.o rpc.grpc.pb.o rpc_server.o
+# 	$(CXX) $^ $(LDFLAGS) -o $@
 
 .PRECIOUS: %.grpc.pb.cc
 %.grpc.pb.cc: %.proto

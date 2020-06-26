@@ -27,7 +27,7 @@
 #ifdef BAZEL_BUILD
 #include "examples/protos/rpc.grpc.pb.h"
 #else
-#include "rpc.grpc.pb.h"
+#include "../rpc-proto/rpc.grpc.pb.h"
 #endif
 
 using grpc::Channel;
