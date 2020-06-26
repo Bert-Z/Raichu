@@ -84,11 +84,12 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 const char descriptor_table_protodef_rpc_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\trpc.proto\022\003rpc\"\'\n\tKVRequest\022\013\n\003key\030\001 \001"
   "(\t\022\r\n\005value\030\002 \001(\t\"\035\n\nKVResponse\022\017\n\007messa"
-  "ge\030\001 \001(\t2\206\001\n\002KV\022)\n\004Read\022\016.rpc.KVRequest\032"
-  "\017.rpc.KVResponse\"\000\022(\n\003Put\022\016.rpc.KVReques"
-  "t\032\017.rpc.KVResponse\"\000\022+\n\006Delete\022\016.rpc.KVR"
-  "equest\032\017.rpc.KVResponse\"\000B(\n\024io.grpc.exa"
-  "mples.rpcB\010rpcProtoP\001\242\002\003HLWb\006proto3"
+  "ge\030\001 \001(\t2\262\001\n\002KV\022*\n\005Where\022\016.rpc.KVRequest"
+  "\032\017.rpc.KVResponse\"\000\022)\n\004Read\022\016.rpc.KVRequ"
+  "est\032\017.rpc.KVResponse\"\000\022(\n\003Put\022\016.rpc.KVRe"
+  "quest\032\017.rpc.KVResponse\"\000\022+\n\006Delete\022\016.rpc"
+  ".KVRequest\032\017.rpc.KVResponse\"\000B(\n\024io.grpc"
+  ".examples.rpcB\010rpcProtoP\001\242\002\003HLWb\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_rpc_2eproto_deps[1] = {
 };
@@ -99,7 +100,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_rpc
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_rpc_2eproto_once;
 static bool descriptor_table_rpc_2eproto_initialized = false;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_rpc_2eproto = {
-  &descriptor_table_rpc_2eproto_initialized, descriptor_table_protodef_rpc_2eproto, "rpc.proto", 275,
+  &descriptor_table_rpc_2eproto_initialized, descriptor_table_protodef_rpc_2eproto, "rpc.proto", 319,
   &descriptor_table_rpc_2eproto_once, descriptor_table_rpc_2eproto_sccs, descriptor_table_rpc_2eproto_deps, 2, 0,
   schemas, file_default_instances, TableStruct_rpc_2eproto::offsets,
   file_level_metadata_rpc_2eproto, 2, file_level_enum_descriptors_rpc_2eproto, file_level_service_descriptors_rpc_2eproto,

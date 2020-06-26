@@ -23,6 +23,9 @@ package rpc;
 
 // The kv client service definition
 service KV{
+  // ask master for the datanode address
+  rpc Where (KVRequest) returns (KVResponse) {}
+  // datanode operations
   rpc Read (KVRequest) returns (KVResponse) {}
   rpc Put (KVRequest) returns (KVResponse) {}
   rpc Delete (KVRequest) returns (KVResponse) {}

@@ -20,11 +20,13 @@ GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
 PROTOS_PATH = ../../rpc-proto/
 
+RPCSERVICE_PATH = ../utils/rpcservice/
+
 vpath %.proto $(PROTOS_PATH)
 
 all: master
 
-master: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o master.o
+master: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h master.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 clean:

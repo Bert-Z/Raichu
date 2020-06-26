@@ -52,6 +52,15 @@ class KV final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
+    // ask master for node ip
+    virtual ::grpc::Status Where(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>> AsyncWhere(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>>(AsyncWhereRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>> PrepareAsyncWhere(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>>(PrepareAsyncWhereRaw(context, request, cq));
+    }
+    // datanode operations
     virtual ::grpc::Status Read(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>> AsyncRead(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>>(AsyncReadRaw(context, request, cq));
@@ -76,6 +85,20 @@ class KV final {
     class experimental_async_interface {
      public:
       virtual ~experimental_async_interface() {}
+      // ask master for node ip
+      virtual void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) = 0;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      virtual void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      virtual void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
+      // datanode operations
       virtual void Read(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) = 0;
       virtual void Read(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) = 0;
       #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -121,6 +144,8 @@ class KV final {
     #endif
     virtual class experimental_async_interface* experimental_async() { return nullptr; }
   private:
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>* AsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>* PrepareAsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>* AsyncReadRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>* PrepareAsyncReadRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::rpc::KVResponse>* AsyncPutRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) = 0;
@@ -131,6 +156,13 @@ class KV final {
   class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
+    ::grpc::Status Where(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>> AsyncWhere(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>>(AsyncWhereRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>> PrepareAsyncWhere(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>>(PrepareAsyncWhereRaw(context, request, cq));
+    }
     ::grpc::Status Read(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>> AsyncRead(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>>(AsyncReadRaw(context, request, cq));
@@ -155,6 +187,18 @@ class KV final {
     class experimental_async final :
       public StubInterface::experimental_async_interface {
      public:
+      void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) override;
+      void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) override;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
       void Read(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) override;
       void Read(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)>) override;
       #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -202,12 +246,15 @@ class KV final {
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
     class experimental_async async_stub_{this};
+    ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* AsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* PrepareAsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* AsyncReadRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* PrepareAsyncReadRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* AsyncPutRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* PrepareAsyncPutRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* AsyncDeleteRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* PrepareAsyncDeleteRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) override;
+    const ::grpc::internal::RpcMethod rpcmethod_Where_;
     const ::grpc::internal::RpcMethod rpcmethod_Read_;
     const ::grpc::internal::RpcMethod rpcmethod_Put_;
     const ::grpc::internal::RpcMethod rpcmethod_Delete_;
@@ -218,9 +265,32 @@ class KV final {
    public:
     Service();
     virtual ~Service();
+    // ask master for node ip
+    virtual ::grpc::Status Where(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response);
+    // datanode operations
     virtual ::grpc::Status Read(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response);
     virtual ::grpc::Status Put(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response);
     virtual ::grpc::Status Delete(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response);
+  };
+  template <class BaseClass>
+  class WithAsyncMethod_Where : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_Where() {
+      ::grpc::Service::MarkMethodAsync(0);
+    }
+    ~WithAsyncMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestWhere(::grpc::ServerContext* context, ::rpc::KVRequest* request, ::grpc::ServerAsyncResponseWriter< ::rpc::KVResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    }
   };
   template <class BaseClass>
   class WithAsyncMethod_Read : public BaseClass {
@@ -228,7 +298,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_Read() {
-      ::grpc::Service::MarkMethodAsync(0);
+      ::grpc::Service::MarkMethodAsync(1);
     }
     ~WithAsyncMethod_Read() override {
       BaseClassMustBeDerivedFromService(this);
@@ -239,7 +309,7 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRead(::grpc::ServerContext* context, ::rpc::KVRequest* request, ::grpc::ServerAsyncResponseWriter< ::rpc::KVResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -248,7 +318,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_Put() {
-      ::grpc::Service::MarkMethodAsync(1);
+      ::grpc::Service::MarkMethodAsync(2);
     }
     ~WithAsyncMethod_Put() override {
       BaseClassMustBeDerivedFromService(this);
@@ -259,7 +329,7 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestPut(::grpc::ServerContext* context, ::rpc::KVRequest* request, ::grpc::ServerAsyncResponseWriter< ::rpc::KVResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -268,7 +338,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_Delete() {
-      ::grpc::Service::MarkMethodAsync(2);
+      ::grpc::Service::MarkMethodAsync(3);
     }
     ~WithAsyncMethod_Delete() override {
       BaseClassMustBeDerivedFromService(this);
@@ -279,16 +349,16 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestDelete(::grpc::ServerContext* context, ::rpc::KVRequest* request, ::grpc::ServerAsyncResponseWriter< ::rpc::KVResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_Read<WithAsyncMethod_Put<WithAsyncMethod_Delete<Service > > > AsyncService;
+  typedef WithAsyncMethod_Where<WithAsyncMethod_Read<WithAsyncMethod_Put<WithAsyncMethod_Delete<Service > > > > AsyncService;
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_Read : public BaseClass {
+  class ExperimentalWithCallbackMethod_Where : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_Read() {
+    ExperimentalWithCallbackMethod_Where() {
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       ::grpc::Service::
     #else
@@ -302,13 +372,60 @@ class KV final {
     #else
                    ::grpc::experimental::CallbackServerContext*
     #endif
-                     context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response) { return this->Read(context, request, response); }));}
-    void SetMessageAllocatorFor_Read(
+                     context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response) { return this->Where(context, request, response); }));}
+    void SetMessageAllocatorFor_Where(
         ::grpc::experimental::MessageAllocator< ::rpc::KVRequest, ::rpc::KVResponse>* allocator) {
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
     #else
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(0);
+    #endif
+      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~ExperimentalWithCallbackMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+    virtual ::grpc::ServerUnaryReactor* Where(
+      ::grpc::CallbackServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* Where(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/)
+    #endif
+      { return nullptr; }
+  };
+  template <class BaseClass>
+  class ExperimentalWithCallbackMethod_Read : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    ExperimentalWithCallbackMethod_Read() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodCallback(1,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(
+            [this](
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response) { return this->Read(context, request, response); }));}
+    void SetMessageAllocatorFor_Read(
+        ::grpc::experimental::MessageAllocator< ::rpc::KVRequest, ::rpc::KVResponse>* allocator) {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
+    #else
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(1);
     #endif
       static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>*>(handler)
               ->SetMessageAllocator(allocator);
@@ -341,7 +458,7 @@ class KV final {
     #else
       ::grpc::Service::experimental().
     #endif
-        MarkMethodCallback(1,
+        MarkMethodCallback(2,
           new ::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(
             [this](
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -353,9 +470,9 @@ class KV final {
     void SetMessageAllocatorFor_Put(
         ::grpc::experimental::MessageAllocator< ::rpc::KVRequest, ::rpc::KVResponse>* allocator) {
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
     #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(1);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(2);
     #endif
       static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>*>(handler)
               ->SetMessageAllocator(allocator);
@@ -388,7 +505,7 @@ class KV final {
     #else
       ::grpc::Service::experimental().
     #endif
-        MarkMethodCallback(2,
+        MarkMethodCallback(3,
           new ::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(
             [this](
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -400,9 +517,9 @@ class KV final {
     void SetMessageAllocatorFor_Delete(
         ::grpc::experimental::MessageAllocator< ::rpc::KVRequest, ::rpc::KVResponse>* allocator) {
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(3);
     #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(2);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(3);
     #endif
       static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>*>(handler)
               ->SetMessageAllocator(allocator);
@@ -425,17 +542,34 @@ class KV final {
       { return nullptr; }
   };
   #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-  typedef ExperimentalWithCallbackMethod_Read<ExperimentalWithCallbackMethod_Put<ExperimentalWithCallbackMethod_Delete<Service > > > CallbackService;
+  typedef ExperimentalWithCallbackMethod_Where<ExperimentalWithCallbackMethod_Read<ExperimentalWithCallbackMethod_Put<ExperimentalWithCallbackMethod_Delete<Service > > > > CallbackService;
   #endif
 
-  typedef ExperimentalWithCallbackMethod_Read<ExperimentalWithCallbackMethod_Put<ExperimentalWithCallbackMethod_Delete<Service > > > ExperimentalCallbackService;
+  typedef ExperimentalWithCallbackMethod_Where<ExperimentalWithCallbackMethod_Read<ExperimentalWithCallbackMethod_Put<ExperimentalWithCallbackMethod_Delete<Service > > > > ExperimentalCallbackService;
+  template <class BaseClass>
+  class WithGenericMethod_Where : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_Where() {
+      ::grpc::Service::MarkMethodGeneric(0);
+    }
+    ~WithGenericMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
   template <class BaseClass>
   class WithGenericMethod_Read : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_Read() {
-      ::grpc::Service::MarkMethodGeneric(0);
+      ::grpc::Service::MarkMethodGeneric(1);
     }
     ~WithGenericMethod_Read() override {
       BaseClassMustBeDerivedFromService(this);
@@ -452,7 +586,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_Put() {
-      ::grpc::Service::MarkMethodGeneric(1);
+      ::grpc::Service::MarkMethodGeneric(2);
     }
     ~WithGenericMethod_Put() override {
       BaseClassMustBeDerivedFromService(this);
@@ -469,7 +603,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_Delete() {
-      ::grpc::Service::MarkMethodGeneric(2);
+      ::grpc::Service::MarkMethodGeneric(3);
     }
     ~WithGenericMethod_Delete() override {
       BaseClassMustBeDerivedFromService(this);
@@ -481,12 +615,32 @@ class KV final {
     }
   };
   template <class BaseClass>
+  class WithRawMethod_Where : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_Where() {
+      ::grpc::Service::MarkMethodRaw(0);
+    }
+    ~WithRawMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestWhere(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
   class WithRawMethod_Read : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_Read() {
-      ::grpc::Service::MarkMethodRaw(0);
+      ::grpc::Service::MarkMethodRaw(1);
     }
     ~WithRawMethod_Read() override {
       BaseClassMustBeDerivedFromService(this);
@@ -497,7 +651,7 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRead(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -506,7 +660,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_Put() {
-      ::grpc::Service::MarkMethodRaw(1);
+      ::grpc::Service::MarkMethodRaw(2);
     }
     ~WithRawMethod_Put() override {
       BaseClassMustBeDerivedFromService(this);
@@ -517,7 +671,7 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestPut(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -526,7 +680,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_Delete() {
-      ::grpc::Service::MarkMethodRaw(2);
+      ::grpc::Service::MarkMethodRaw(3);
     }
     ~WithRawMethod_Delete() override {
       BaseClassMustBeDerivedFromService(this);
@@ -537,8 +691,46 @@ class KV final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestDelete(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
     }
+  };
+  template <class BaseClass>
+  class ExperimentalWithRawCallbackMethod_Where : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    ExperimentalWithRawCallbackMethod_Where() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodRawCallback(0,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->Where(context, request, response); }));
+    }
+    ~ExperimentalWithRawCallbackMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+    virtual ::grpc::ServerUnaryReactor* Where(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* Where(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
   class ExperimentalWithRawCallbackMethod_Read : public BaseClass {
@@ -551,7 +743,7 @@ class KV final {
     #else
       ::grpc::Service::experimental().
     #endif
-        MarkMethodRawCallback(0,
+        MarkMethodRawCallback(1,
           new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -589,7 +781,7 @@ class KV final {
     #else
       ::grpc::Service::experimental().
     #endif
-        MarkMethodRawCallback(1,
+        MarkMethodRawCallback(2,
           new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -627,7 +819,7 @@ class KV final {
     #else
       ::grpc::Service::experimental().
     #endif
-        MarkMethodRawCallback(2,
+        MarkMethodRawCallback(3,
           new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
     #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
@@ -655,12 +847,32 @@ class KV final {
       { return nullptr; }
   };
   template <class BaseClass>
+  class WithStreamedUnaryMethod_Where : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_Where() {
+      ::grpc::Service::MarkMethodStreamed(0,
+        new ::grpc::internal::StreamedUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(std::bind(&WithStreamedUnaryMethod_Where<BaseClass>::StreamedWhere, this, std::placeholders::_1, std::placeholders::_2)));
+    }
+    ~WithStreamedUnaryMethod_Where() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status Where(::grpc::ServerContext* /*context*/, const ::rpc::KVRequest* /*request*/, ::rpc::KVResponse* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedWhere(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::rpc::KVRequest,::rpc::KVResponse>* server_unary_streamer) = 0;
+  };
+  template <class BaseClass>
   class WithStreamedUnaryMethod_Read : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_Read() {
-      ::grpc::Service::MarkMethodStreamed(0,
+      ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(std::bind(&WithStreamedUnaryMethod_Read<BaseClass>::StreamedRead, this, std::placeholders::_1, std::placeholders::_2)));
     }
     ~WithStreamedUnaryMethod_Read() override {
@@ -680,7 +892,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_Put() {
-      ::grpc::Service::MarkMethodStreamed(1,
+      ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(std::bind(&WithStreamedUnaryMethod_Put<BaseClass>::StreamedPut, this, std::placeholders::_1, std::placeholders::_2)));
     }
     ~WithStreamedUnaryMethod_Put() override {
@@ -700,7 +912,7 @@ class KV final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_Delete() {
-      ::grpc::Service::MarkMethodStreamed(2,
+      ::grpc::Service::MarkMethodStreamed(3,
         new ::grpc::internal::StreamedUnaryHandler< ::rpc::KVRequest, ::rpc::KVResponse>(std::bind(&WithStreamedUnaryMethod_Delete<BaseClass>::StreamedDelete, this, std::placeholders::_1, std::placeholders::_2)));
     }
     ~WithStreamedUnaryMethod_Delete() override {
@@ -714,9 +926,9 @@ class KV final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedDelete(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::rpc::KVRequest,::rpc::KVResponse>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_Read<WithStreamedUnaryMethod_Put<WithStreamedUnaryMethod_Delete<Service > > > StreamedUnaryService;
+  typedef WithStreamedUnaryMethod_Where<WithStreamedUnaryMethod_Read<WithStreamedUnaryMethod_Put<WithStreamedUnaryMethod_Delete<Service > > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_Read<WithStreamedUnaryMethod_Put<WithStreamedUnaryMethod_Delete<Service > > > StreamedService;
+  typedef WithStreamedUnaryMethod_Where<WithStreamedUnaryMethod_Read<WithStreamedUnaryMethod_Put<WithStreamedUnaryMethod_Delete<Service > > > > StreamedService;
 };
 
 }  // namespace rpc

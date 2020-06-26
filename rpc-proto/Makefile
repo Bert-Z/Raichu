@@ -40,14 +40,6 @@ vpath %.proto $(PROTOS_PATH)
 
 all: rpc.pb.o rpc.grpc.pb.o 
 
-# all: rpc_client rpc_server 
-
-# rpc_client: rpc.pb.o rpc.grpc.pb.o rpc_client.o
-# 	$(CXX) $^ $(LDFLAGS) -o $@
-
-# rpc_server: rpc.pb.o rpc.grpc.pb.o rpc_server.o
-# 	$(CXX) $^ $(LDFLAGS) -o $@
-
 .PRECIOUS: %.grpc.pb.cc
 %.grpc.pb.cc: %.proto
 	$(PROTOC) -I $(PROTOS_PATH) --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<

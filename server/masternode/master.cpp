@@ -1,72 +1,40 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+#include "../utils/rpcservice/service.h"
+#include "../utils/zk/zk_cpp.h"
 
-#include <iostream>
-#include <memory>
-#include <string>
+raichu::server::zk::zk_cpp zk;
 
-#include <grpcpp/grpcpp.h>
-#include <grpcpp/health_check_service_interface.h>
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
-
-#ifdef BAZEL_BUILD
-#include "examples/protos/rpc.grpc.pb.h"
-#else
-#include "../../rpc-proto/rpc.grpc.pb.h"
-#endif
-
-using grpc::Server;
-using grpc::ServerBuilder;
-using grpc::ServerContext;
-using grpc::Status;
-
-// KV server rpc
-using rpc::KV;
-using rpc::KVRequest;
-using rpc::KVResponse;
-
-class KVServiceImpl final : public KV::Service
+// rpc sevice implement
+raichu::server::Status raichu::server::KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
+                                                            KVResponse *response)
 {
-  Status Read(ServerContext *context, const KVRequest *request,
-              KVResponse *response) override
-  {
-    response->set_message("Read " + request->key() + " success.");
-    return Status::OK;
-  }
+  response->set_message("");
+  return Status::OK;
+}
 
-  Status Put(ServerContext *context, const KVRequest *request,
-             KVResponse *response) override
-  {
-    response->set_message("Put " + request->key() + "--" + request->value() + " success.");
-    return Status::OK;
-  }
-
-  Status Delete(ServerContext *context, const KVRequest *request,
-                KVResponse *response) override
-  {
-    response->set_message("Delete " + request->key() + " success.");
-    return Status::OK;
-  }
-};
-
-void RunServer()
+raichu::server::Status raichu::server::KVServiceImpl::Read(ServerContext *context, const KVRequest *request,
+                                                           KVResponse *response)
 {
-  std::string server_address("0.0.0.0:50051");
+  response->set_message("Read " + request->key() + " success.");
+  return Status::OK;
+}
+
+raichu::server::Status raichu::server::KVServiceImpl::Put(ServerContext *context, const KVRequest *request,
+                                                          KVResponse *response)
+{
+  response->set_message("Put " + request->key() + "--" + request->value() + " success.");
+  return Status::OK;
+}
+
+raichu::server::Status raichu::server::KVServiceImpl::Delete(ServerContext *context, const KVRequest *request,
+                                                             KVResponse *response)
+{
+  response->set_message("Delete " + request->key() + " success.");
+  return Status::OK;
+}
+
+void raichu::server::RunServer(const std::string &address)
+{
+  std::string server_address(address);
 
   // kv service
   KVServiceImpl kvservice;
@@ -88,9 +56,63 @@ void RunServer()
   server->Wait();
 }
 
+// zk master node port is 2182
+void zkinit(raichu::server::zk::zoo_rc &flag)
+{
+  std::string url = "localhost:2182";
+  std::cout << "zk master node address is " << url << std::endl;
+
+  flag = zk.connect(url);
+  if (flag != raichu::server::zk::z_ok)
+  {
+    printf("try connect zk server failed, code[%d][%s]\n",
+           flag, raichu::server::zk::zk_cpp::error_string(flag));
+    return;
+  }
+
+  // initialize node2 and node3 if empty
+  std::string path2 = "/node2", path3 = "/node3";
+  raichu::server::zk::zoo_rc ret = zk.exists_node(path2.c_str(), nullptr, true);
+  if (ret != raichu::server::zk::z_ok)
+  {
+    std::vector<raichu::server::zk::zoo_acl_t> acl;
+    acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
+    // initialize node size as 0
+    flag = zk.create_persistent_node(path2.c_str(), 0, acl);
+    if (flag != raichu::server::zk::z_ok)
+    {
+      printf("try to create node2 failed, code[%d][%s]\n",
+             flag, raichu::server::zk::zk_cpp::error_string(flag));
+      return;
+    }
+  }
+
+  ret = zk.exists_node(path3.c_str(), nullptr, true);
+  if (ret != raichu::server::zk::z_ok)
+  {
+    std::vector<raichu::server::zk::zoo_acl_t> acl;
+    acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
+    // initialize node size as 0
+    flag = zk.create_persistent_node(path3.c_str(), 0, acl);
+    if (flag != raichu::server::zk::z_ok)
+    {
+      printf("try to create node3 failed, code[%d][%s]\n",
+             flag, raichu::server::zk::zk_cpp::error_string(flag));
+      return;
+    }
+  }
+}
+
 int main(int argc, char **argv)
 {
-  RunServer();
+  // zk init
+  raichu::server::zk::zoo_rc flag = raichu::server::zk::z_ok;
+  zkinit(flag);
+  if (flag != raichu::server::zk::z_ok)
+    return 1;
+
+  // master server address as localhost:50051
+  raichu::server::RunServer("0.0.0.0:50051");
 
   return 0;
 }

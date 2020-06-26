@@ -22,6 +22,7 @@
 namespace rpc {
 
 static const char* KV_method_names[] = {
+  "/rpc.KV/Where",
   "/rpc.KV/Read",
   "/rpc.KV/Put",
   "/rpc.KV/Delete",
@@ -34,10 +35,39 @@ std::unique_ptr< KV::Stub> KV::NewStub(const std::shared_ptr< ::grpc::ChannelInt
 }
 
 KV::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
-  : channel_(channel), rpcmethod_Read_(KV_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_Put_(KV_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_Delete_(KV_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  : channel_(channel), rpcmethod_Where_(KV_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_Read_(KV_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_Put_(KV_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_Delete_(KV_method_names[3], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
+
+::grpc::Status KV::Stub::Where(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) {
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_Where_, context, request, response);
+}
+
+void KV::Stub::experimental_async::Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_Where_, context, request, response, std::move(f));
+}
+
+void KV::Stub::experimental_async::Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_Where_, context, request, response, std::move(f));
+}
+
+void KV::Stub::experimental_async::Where(::grpc::ClientContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_Where_, context, request, response, reactor);
+}
+
+void KV::Stub::experimental_async::Where(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::rpc::KVResponse* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_Where_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* KV::Stub::AsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::rpc::KVResponse>::Create(channel_.get(), cq, rpcmethod_Where_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::rpc::KVResponse>* KV::Stub::PrepareAsyncWhereRaw(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::rpc::KVResponse>::Create(channel_.get(), cq, rpcmethod_Where_, context, request, false);
+}
 
 ::grpc::Status KV::Stub::Read(::grpc::ClientContext* context, const ::rpc::KVRequest& request, ::rpc::KVResponse* response) {
   return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_Read_, context, request, response);
@@ -128,20 +158,32 @@ KV::Service::Service() {
       KV_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< KV::Service, ::rpc::KVRequest, ::rpc::KVResponse>(
-          std::mem_fn(&KV::Service::Read), this)));
+          std::mem_fn(&KV::Service::Where), this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       KV_method_names[1],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< KV::Service, ::rpc::KVRequest, ::rpc::KVResponse>(
-          std::mem_fn(&KV::Service::Put), this)));
+          std::mem_fn(&KV::Service::Read), this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       KV_method_names[2],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< KV::Service, ::rpc::KVRequest, ::rpc::KVResponse>(
+          std::mem_fn(&KV::Service::Put), this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      KV_method_names[3],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< KV::Service, ::rpc::KVRequest, ::rpc::KVResponse>(
           std::mem_fn(&KV::Service::Delete), this)));
 }
 
 KV::Service::~Service() {
+}
+
+::grpc::Status KV::Service::Where(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
 ::grpc::Status KV::Service::Read(::grpc::ServerContext* context, const ::rpc::KVRequest* request, ::rpc::KVResponse* response) {
