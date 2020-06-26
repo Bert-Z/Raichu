@@ -34,23 +34,42 @@ using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
-using rpc::HelloRequest;
-using rpc::HelloReply;
-using rpc::Greeter;
 
-// Logic and data behind the server's behavior.
-class GreeterServiceImpl final : public Greeter::Service {
-  Status SayHello(ServerContext* context, const HelloRequest* request,
-                  HelloReply* reply) override {
-    std::string prefix("Hello ");
-    reply->set_message(prefix + request->name());
+// KV server rpc
+using rpc::KV;
+using rpc::KVRequest;
+using rpc::KVResponse;
+
+class KVServiceImpl final : public KV::Service
+{
+  Status Read(ServerContext *context, const KVRequest *request,
+              KVResponse *response) override
+  {
+    response->set_message("Read " + request->key() + " success.");
+    return Status::OK;
+  }
+
+  Status Put(ServerContext *context, const KVRequest *request,
+             KVResponse *response) override
+  {
+    response->set_message("Put " + request->key() + "--" + request->value() + " success.");
+    return Status::OK;
+  }
+
+  Status Delete(ServerContext *context, const KVRequest *request,
+                KVResponse *response) override
+  {
+    response->set_message("Delete " + request->key() + " success.");
     return Status::OK;
   }
 };
 
-void RunServer() {
+void RunServer()
+{
   std::string server_address("0.0.0.0:50051");
-  GreeterServiceImpl service;
+
+  // kv service
+  KVServiceImpl kvservice;
 
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -59,7 +78,7 @@ void RunServer() {
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   // Register "service" as the instance through which we'll communicate with
   // clients. In this case it corresponds to an *synchronous* service.
-  builder.RegisterService(&service);
+  builder.RegisterService(&kvservice);
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
   std::cout << "Server listening on " << server_address << std::endl;
@@ -69,7 +88,8 @@ void RunServer() {
   server->Wait();
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
   RunServer();
 
   return 0;

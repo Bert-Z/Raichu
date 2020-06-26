@@ -21,18 +21,18 @@ option objc_class_prefix = "HLW";
 
 package rpc;
 
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+// The kv client service definition
+service KV{
+  rpc Read (KVRequest) returns (KVResponse) {}
+  rpc Put (KVRequest) returns (KVResponse) {}
+  rpc Delete (KVRequest) returns (KVResponse) {}
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+message KVRequest {
+  string key = 1;
+  string value = 2;
 }
 
-// The response message containing the greetings
-message HelloReply {
+message KVResponse {
   string message = 1;
 }
