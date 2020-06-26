@@ -298,7 +298,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    target_str = "localhost::50051";
+    target_str = "localhost:50051";
   }
 
   std::string node2 = "localhost:50052", node3 = "localhost:50053";
