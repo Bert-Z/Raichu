@@ -128,6 +128,7 @@ void clientRun(const std::string &target_str)
   // input
   std::string line;
   std::vector<std::string> vec;
+  std::cout << ">";
   while (std::getline(std::cin, line))
   {
     std::istringstream input(line);
@@ -181,6 +182,8 @@ void clientRun(const std::string &target_str)
       else
         std::cout << "Wrong input!" << std::endl;
     }
+
+    std::cout << ">";
   }
 }
 
