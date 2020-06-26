@@ -42,18 +42,65 @@ using rpc::KVResponse;
 class Client
 {
 public:
-  Client(std::shared_ptr<Channel> channel)
-      : stub_(KV::NewStub(channel)) {}
+  Client(std::shared_ptr<Channel> master_channel,
+         std::shared_ptr<Channel> node2_channel,
+         std::shared_ptr<Channel> node3_channel)
+      : master_stub_(KV::NewStub(master_channel)),
+        node2_stub_(KV::NewStub(node2_channel)),
+        node3_stub_(KV::NewStub(node3_channel))
+  {
+  }
+
+  std::string Where(const std::string &key, const std::string &value = "")
+  {
+    KVRequest request;
+    request.set_key(key);
+    request.set_value(value);
+
+    KVResponse response;
+
+    ClientContext context;
+    Status status = master_stub_->Where(&context, request, &response);
+
+    if (status.ok())
+      return response.message();
+    else
+    {
+      std::string msg = response.message();
+      if (msg.size() != 0)
+      {
+        std::cout << msg << std::endl;
+        return "not exist";
+      }
+
+      std::cout << status.error_code() << ": " << status.error_message()
+                << std::endl;
+      return "RPC failed";
+    }
+  }
 
   std::string Read(const std::string &key)
   {
+    std::string msg = Where(key);
+    if (msg == "RPC failed" || msg == "not exist")
+    {
+      return "Read failed";
+    }
+
     KVRequest request;
     request.set_key(key);
 
     KVResponse response;
 
     ClientContext context;
-    Status status = stub_->Read(&context, request, &response);
+
+    Status status;
+    if (msg == "localhost:50052")
+      status = node2_stub_->Read(&context, request, &response);
+    else if (msg == "localhost:50053")
+      status = node3_stub_->Read(&context, request, &response);
+    else
+      return "Wrong Read msg";
 
     if (status.ok())
       return response.message();
@@ -67,6 +114,12 @@ public:
 
   std::string Put(const std::string &key, const std::string &value)
   {
+    std::string msg = Where(key, value);
+    if (msg == "RPC failed" || msg == "not exist")
+    {
+      return "Read failed";
+    }
+
     KVRequest request;
     request.set_key(key);
     request.set_value(value);
@@ -74,7 +127,13 @@ public:
     KVResponse response;
 
     ClientContext context;
-    Status status = stub_->Put(&context, request, &response);
+    Status status;
+    if (msg == "localhost:50052")
+      status = node2_stub_->Put(&context, request, &response);
+    else if (msg == "localhost:50053")
+      status = node3_stub_->Put(&context, request, &response);
+    else
+      return "Wrong Put msg";
 
     if (status.ok())
       return response.message();
@@ -88,13 +147,25 @@ public:
 
   std::string Delete(const std::string &key)
   {
+    std::string msg = Where(key);
+    if (msg == "RPC failed" || msg == "not exist")
+    {
+      return "Read failed";
+    }
+
     KVRequest request;
     request.set_key(key);
 
     KVResponse response;
 
     ClientContext context;
-    Status status = stub_->Delete(&context, request, &response);
+    Status status;
+    if (msg == "localhost:50052")
+      status = node2_stub_->Delete(&context, request, &response);
+    else if (msg == "localhost:50053")
+      status = node3_stub_->Delete(&context, request, &response);
+    else
+      return "Wrong Delete msg";
 
     if (status.ok())
       return response.message();
@@ -107,14 +178,20 @@ public:
   }
 
 private:
-  std::unique_ptr<KV::Stub> stub_;
+  std::unique_ptr<KV::Stub> master_stub_;
+  std::unique_ptr<KV::Stub> node2_stub_;
+  std::unique_ptr<KV::Stub> node3_stub_;
 };
 
-void clientRun(const std::string &target_str)
+void clientRun(const std::string &master_node, const std::string &node2, const std::string &node3)
 {
   // kv client
   Client client(grpc::CreateChannel(
-      target_str, grpc::InsecureChannelCredentials()));
+                    master_node, grpc::InsecureChannelCredentials()),
+                grpc::CreateChannel(
+                    node2, grpc::InsecureChannelCredentials()),
+                grpc::CreateChannel(
+                    node3, grpc::InsecureChannelCredentials()));
 
   // client user guild
   std::cout << "This is a kv storage system." << std::endl
@@ -221,10 +298,12 @@ int main(int argc, char **argv)
   }
   else
   {
-    target_str = "localhost:50051";
+    target_str = "localhost::50051";
   }
 
-  clientRun(target_str);
+  std::string node2 = "localhost:50052", node3 = "localhost:50053";
+
+  clientRun(target_str, node2, node3);
 
   return 0;
 }

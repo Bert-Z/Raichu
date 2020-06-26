@@ -1,7 +1,9 @@
 #include "../../utils/rpcservice/service.h"
 #include "../../utils/zk/zk_cpp.h"
 
-raichu::server::zk::zk_cpp zk;
+raichu::server::zk::zk_cpp node3_zk;
+std::string path = "/node3/address";
+std::string node3_address = "localhost:50053";
 
 // rpc sevice implement
 raichu::server::Status raichu::server::KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
@@ -62,12 +64,27 @@ void zkinit(raichu::server::zk::zoo_rc &flag)
   std::string url = "localhost:2183";
   std::cout << "zk node3 address is " << url << std::endl;
 
-  flag = zk.connect(url);
+  flag = node3_zk.connect(url);
   if (flag != raichu::server::zk::z_ok)
   {
     printf("try connect zk server failed, code[%d][%s]\n",
            flag, raichu::server::zk::zk_cpp::error_string(flag));
     return;
+  }
+  // initialize node2 address
+  raichu::server::zk::zoo_rc ret = node3_zk.exists_node(path.c_str(), nullptr, true);
+  if (ret != raichu::server::zk::z_ok)
+  {
+    std::vector<raichu::server::zk::zoo_acl_t> acl;
+    acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
+    // initialize node size as 0
+    flag = node3_zk.create_persistent_node(path.c_str(), node3_address, acl);
+    if (flag != raichu::server::zk::z_ok)
+    {
+      printf("try to create node2 failed, code[%d][%s]\n",
+             flag, raichu::server::zk::zk_cpp::error_string(flag));
+      return;
+    }
   }
 }
 
@@ -80,7 +97,7 @@ int main(int argc, char **argv)
     return 1;
 
   // node3 server address as localhost:50053
-  raichu::server::RunServer("0.0.0.0:50053");
+  raichu::server::RunServer(node3_address);
 
   return 0;
 }
