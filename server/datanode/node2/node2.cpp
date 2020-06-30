@@ -1,8 +1,11 @@
 #include "../../utils/rpcservice/service.h"
 #include "../../utils/zk/zk_cpp.h"
+#include "../dbservice/db.h"
+#include <memory>
 
 raichu::server::zk::zk_cpp node2_zk;
-std::string path="/node2/address";
+std::unique_ptr<raichu::server::db::db> node2db;
+std::string path = "/node2/address";
 std::string node2_address = "localhost:50052";
 
 // rpc sevice implement
@@ -17,6 +20,13 @@ raichu::server::Status raichu::server::KVServiceImpl::Read(ServerContext *contex
                                                            KVResponse *response)
 {
   response->set_message("Read " + request->key() + " success.");
+
+  std::string key = request->key();
+
+  std::string node2key = "/node2/" + key;
+  raichu::server::zk::zoo_rc ret2 = node2_zk.exists_node(node2key.c_str(), nullptr, true);
+
+  response->set_message(node2db->dbRead(key));
   return Status::OK;
 }
 
@@ -24,14 +34,49 @@ raichu::server::Status raichu::server::KVServiceImpl::Put(ServerContext *context
                                                           KVResponse *response)
 {
   response->set_message("Put " + request->key() + "--" + request->value() + " success.");
-  return Status::OK;
+
+  std::string key = request->key(), value = request->value();
+  response->set_message("Put " + key + "-" + value);
+
+  node2db->dbPut(key, value);
+
+  std::string node2key = "/node2/" + key;
+  raichu::server::zk::zoo_rc ret2 = node2_zk.exists_node(node2key.c_str(), nullptr, true);
+  if (ret2 == raichu::server::zk::z_ok)
+  {
+    node2_zk.set_node(node2key.c_str(), "1", -1);
+
+    return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
+  }
+
+  std::vector<raichu::server::zk::zoo_acl_t> acl;
+  acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
+  ret2 = node2_zk.create_persistent_node(node2key.c_str(), "1", acl);
+
+  return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
 }
 
 raichu::server::Status raichu::server::KVServiceImpl::Delete(ServerContext *context, const KVRequest *request,
                                                              KVResponse *response)
 {
   response->set_message("Delete " + request->key() + " success.");
-  return Status::OK;
+
+  std::string key = request->key();
+
+  std::string node2key = "/node2/" + key;
+  raichu::server::zk::zoo_rc ret2 = node2_zk.exists_node(node2key.c_str(), nullptr, true);
+
+  if (ret2 != raichu::server::zk::z_ok)
+    return Status::CANCELLED;
+
+  // db operation
+  response->set_message("delete " + key + "-" + node2db->dbRead(key));
+  node2db->dbDelete(key);
+
+  // zk operation
+  ret2 = node2_zk.delete_node(node2key.c_str(), -1);
+
+  return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
 }
 
 void raichu::server::RunServer(const std::string &address)
@@ -95,6 +140,8 @@ int main(int argc, char **argv)
   zkinit(flag);
   if (flag != raichu::server::zk::z_ok)
     return 1;
+
+  node2db.reset(new raichu::server::db::db("node2"));
 
   // node3 server address as localhost:50052
   raichu::server::RunServer(node2_address);

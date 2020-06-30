@@ -62,11 +62,14 @@ public:
     ClientContext context;
     Status status = master_stub_->Where(&context, request, &response);
 
+    std::string msg = response.message();
     if (status.ok())
-      return response.message();
+    {
+      std::cout << msg << std::endl;
+      return msg;
+    }
     else
     {
-      std::string msg = response.message();
       if (msg.size() != 0)
       {
         std::cout << msg << std::endl;

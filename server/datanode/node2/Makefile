@@ -22,6 +22,8 @@ PROTOS_PATH = ../../../rpc-proto/
 
 RPCSERVICE_PATH = ../../utils/rpcservice/
 
+DBSERVICE_PATH = ../dbservice/
+
 OPT = -pipe -fno-ident 
 LDFLAGS+= $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops  -D_REENTRANT -lzookeeper_mt 
 
@@ -36,7 +38,7 @@ vpath %.proto $(PROTOS_PATH)
 
 all: node2
 
-node2: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(ZK_PATH)zk_cpp.o node2.o
+node2: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(DBSERVICE_PATH)db.o $(ZK_PATH)zk_cpp.o node2.o
 	$(CXX) $^ $(LDFLAGS) -o $@ $(LIB) $(INC) 
 
 clean:

@@ -7,19 +7,21 @@ std::string path2 = "/node2", path3 = "/node3";
 using raichu::server::KVServiceImpl;
 using raichu::server::Status;
 
-long getNodeSize(const std::string &path)
+std::size_t getNodeSize(const std::string &path)
 {
   std::string value;
-  raichu::server::zk::zoo_rc ret = master_zk.get_node(path2.c_str(), value, nullptr, true);
-  printf("try get path[%s]'s value, value[%s] ret[%d][%s]\n", path2.c_str(), value.c_str(), ret, raichu::server::zk::zk_cpp::error_string(ret));
-  return std::stol(value);
+  std::vector<std::string> children;
+  raichu::server::zk::zoo_rc ret = master_zk.get_children(path.c_str(), children, true);
+  printf("try get path[%s]'s children's, children count[%d], ret[%d][%s]\n",
+         path.c_str(), (int32_t)children.size(), ret, raichu::server::zk::zk_cpp::error_string(ret));
+  return children.size();
 }
 
 std::string getNodeAddress(const std::string &path)
 {
   std::string value;
-  raichu::server::zk::zoo_rc ret = master_zk.get_node(path2.c_str(), value, nullptr, true);
-  printf("try get path[%s]'s value, value[%s] ret[%d][%s]\n", path2.c_str(), value.c_str(), ret, raichu::server::zk::zk_cpp::error_string(ret));
+  raichu::server::zk::zoo_rc ret = master_zk.get_node(path.c_str(), value, nullptr, true);
+  printf("try get path[%s]'s value, value[%s] ret[%d][%s]\n", path.c_str(), value.c_str(), ret, raichu::server::zk::zk_cpp::error_string(ret));
   return value;
 }
 
@@ -45,8 +47,8 @@ Status KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
 
   if (value.size() != 0)
   {
-    long node2_size = getNodeSize("/node2");
-    long node3_size = getNodeSize("/node3");
+    std::size_t node2_size = getNodeSize("/node2");
+    std::size_t node3_size = getNodeSize("/node3");
     if (node2_size <= node3_size)
     {
       response->set_message(getNodeAddress("/node2/address"));
