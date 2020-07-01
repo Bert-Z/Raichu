@@ -24,11 +24,8 @@
 
 #include <grpcpp/grpcpp.h>
 
-#ifdef BAZEL_BUILD
-#include "examples/protos/rpc.grpc.pb.h"
-#else
 #include "../rpc-proto/rpc.grpc.pb.h"
-#endif
+#include "../lock/lock.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -42,13 +39,15 @@ using rpc::KVResponse;
 class Client
 {
 public:
-  Client(std::shared_ptr<Channel> master_channel,
+  Client(const std::string &master_node,
+         std::shared_ptr<Channel> master_channel,
          std::shared_ptr<Channel> node2_channel,
          std::shared_ptr<Channel> node3_channel)
       : master_stub_(KV::NewStub(master_channel)),
         node2_stub_(KV::NewStub(node2_channel)),
         node3_stub_(KV::NewStub(node3_channel))
   {
+    lock.reset(new raichu::lock::ReadWriteLock(master_node, "/lock"));
   }
 
   std::string Where(const std::string &key, const std::string &value = "")
@@ -61,7 +60,6 @@ public:
 
     ClientContext context;
     Status status = master_stub_->Where(&context, request, &response);
-
     std::string msg = response.message();
     if (status.ok())
     {
@@ -84,6 +82,7 @@ public:
 
   std::string Read(const std::string &key)
   {
+    lock->lockRead();
     std::string msg = Where(key);
     if (msg == "RPC failed" || msg == "not exist")
     {
@@ -105,6 +104,8 @@ public:
     else
       return "Wrong Read msg";
 
+    lock->unLockRead();
+
     if (status.ok())
       return response.message();
     else
@@ -117,6 +118,7 @@ public:
 
   std::string Put(const std::string &key, const std::string &value)
   {
+    lock->lockWrite();
     std::string msg = Where(key, value);
     if (msg == "RPC failed" || msg == "not exist")
     {
@@ -138,6 +140,8 @@ public:
     else
       return "Wrong Put msg";
 
+    lock->unLockWrite();
+
     if (status.ok())
       return response.message();
     else
@@ -150,6 +154,7 @@ public:
 
   std::string Delete(const std::string &key)
   {
+    lock->lockWrite();
     std::string msg = Where(key);
     if (msg == "RPC failed" || msg == "not exist")
     {
@@ -170,6 +175,7 @@ public:
     else
       return "Wrong Delete msg";
 
+    lock->unLockWrite();
     if (status.ok())
       return response.message();
     else
@@ -184,13 +190,13 @@ private:
   std::unique_ptr<KV::Stub> master_stub_;
   std::unique_ptr<KV::Stub> node2_stub_;
   std::unique_ptr<KV::Stub> node3_stub_;
+  std::unique_ptr<raichu::lock::ReadWriteLock> lock;
 };
 
 void clientRun(const std::string &master_node, const std::string &node2, const std::string &node3)
 {
   // kv client
-  Client client(grpc::CreateChannel(
-                    master_node, grpc::InsecureChannelCredentials()),
+  Client client("localhost:2182", grpc::CreateChannel(master_node, grpc::InsecureChannelCredentials()),
                 grpc::CreateChannel(
                     node2, grpc::InsecureChannelCredentials()),
                 grpc::CreateChannel(

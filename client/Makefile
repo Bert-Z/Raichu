@@ -20,12 +20,22 @@ GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
 PROTOS_PATH = ../rpc-proto/
 
+OPT = -pipe -fno-ident 
+LDFLAGS+= $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops  -D_REENTRANT -lzookeeper_mt 
+
+ZK_PATH = ../server/utils/zk/
+LOCK_PATH = ../lock/
+
+INC += -I.  -I/usr/local/include/zookeeper
+		
+LIB += -lrt -lm -lz 
+
 vpath %.proto $(PROTOS_PATH)
 
 all: client
 
-client: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o client.o
-	$(CXX) $^ $(LDFLAGS) -o $@
+client: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(ZK_PATH)zk_cpp.o $(LOCK_PATH)lock.o client.o
+	$(CXX) $^ $(LDFLAGS) -o $@ $(LIB) $(INC) 
 
 clean:
 	rm -f *.o client

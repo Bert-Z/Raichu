@@ -57,8 +57,8 @@ namespace raichu
 
                     std::string path_str = path ? path : "";
 
-                    printf("zk_watcher, type[%d:%s] state[%d:%s] path[%s]\n",
-                           type, type_to_string(type), state, state_to_string(state), path_str.c_str());
+                    // printf("zk_watcher, type[%d:%s] state[%d:%s] path[%s]\n",
+                    //        type, type_to_string(type), state, state_to_string(state), path_str.c_str());
 
                     if (type == ZOO_SESSION_EVENT)
                     {
@@ -540,7 +540,7 @@ namespace raichu
 
             void zk_cpp::on_path_child_change(const char *path)
             {
-                printf("zk_cpp::on_path_child_change, path[%s]\n", path);
+                // printf("zk_cpp::on_path_child_change, path[%s]\n", path);
 
                 std::string path_str(path);
                 auto handler = get_child_event_handler(path_str);
