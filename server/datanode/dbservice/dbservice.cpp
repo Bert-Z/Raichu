@@ -4,56 +4,85 @@ namespace raichu
 {
     namespace server
     {
-        unsigned long dbservice::nodenum = 0;
-
-        std::string dbservice::createNode()
+        std::string dbservice::createNode(int i)
         {
-            std::string name = "datanode" + std::to_string(nodenum);
-            dbs[name] = std::unique_ptr<db::db>(new db::db(name));
-            return name;
+            std::string backup_name = "backup-" + std::to_string(i);
+            backups[i] = std::unique_ptr<db::db>(new db::db(backup_name));
+            return backup_name;
         }
 
-        std::string dbservice::createNode(const std::string &name)
+        int dbservice::getBackupSize()
         {
-            if (dbs.find(name) != dbs.end())
-                return name + " has been created.";
-            dbs[name] = std::unique_ptr<db::db>(new db::db(name));
-            return name;
-        }
-
-        void dbservice::deleteNode(const std::string &name)
-        {
-            dbs.erase(name);
-        }
-
-        void dbservice::getAllNodeName(std::vector<std::string> &names)
-        {
-            names.clear();
-            for (auto &node : dbs)
-                names.emplace_back(node.first);
+            return backup_num;
         }
 
         // PUT
-        std::string dbservice::Put(const std::string &name, const std::string &key, const std::string &value)
+        std::string dbservice::Put(const std::string &key, const std::string &value)
         {
-            if (dbs.find(name) == dbs.end())
-                createNode(name);
+            std::thread threads[backup_num];
+            for (int i = 0; i < backup_num; i++)
+            {
+                threads[i] = std::thread(&dbservice::tPut, this, i, key, value);
+            }
+            for (int i = 0; i < backup_num; i++)
+                threads[i].join();
 
-            dbs[name]->dbPut(key, value);
+            return key + ":" + value;
+        }
+        std::string dbservice::tPut(int i, const std::string &key, const std::string &value)
+        {
+            backups[i]->dbPut(key, value);
             return key + ":" + value;
         }
         // DELETE
-        void dbservice::Delete(const std::string &name, const std::string &key)
+        void dbservice::Delete(const std::string &key)
         {
-            dbs[name]->dbDelete(key);
+            std::thread threads[backup_num];
+            for (int i = 0; i < backup_num; i++)
+            {
+                threads[i] = std::thread(&dbservice::tDelete, this, i, key);
+            }
+            for (int i = 0; i < backup_num; i++)
+                threads[i].join();
+        }
+        void dbservice::tDelete(int i, const std::string &key)
+        {
+            backups[i]->dbDelete(key);
         }
         // READ
-        std::string dbservice::Read(const std::string &name, const std::string &key)
+        std::string dbservice::Read(const std::string &key)
         {
-            if (dbs.find(name) == dbs.end())
-                return "dbnode: " + name + " not found.";
+            // set the first one as the primary node
+            return backups[0]->dbRead(key);
+        }
+        std::string dbservice::tRead(int i, const std::string &key)
+        {
+            return backups[i]->dbRead(key);
+        }
 
-            return dbs[name]->dbRead(key);
+        // 2PC protocol
+        // check backups status
+        bool dbservice::commitRequest()
+        {
+            if (backups.size() == backup_num)
+                return true;
+            return false;
+        }
+        // commit transactions
+        std::string dbservice::commitTransactions(Op op, const std::string &key, const std::string &value)
+        {
+            switch (op)
+            {
+            case Op::READ:
+                return Read(key);
+            case Op::PUT:
+                return Put(key, value);
+            case Op::DELETE:
+                Delete(key);
+                return "Delete " + key;
+            default:
+                return "Wrong Op";
+            }
         }
     } // namespace server
 } // namespace raichu

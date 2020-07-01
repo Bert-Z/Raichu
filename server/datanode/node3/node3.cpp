@@ -1,10 +1,10 @@
 #include "../../utils/rpcservice/service.h"
 #include "../../utils/zk/zk_cpp.h"
-#include "../dbservice/db.h"
+#include "../dbservice/dbservice.h"
 #include <memory>
 
 raichu::server::zk::zk_cpp node3_zk;
-std::unique_ptr<raichu::server::db::db> node3db;
+std::unique_ptr<raichu::server::dbservice> node3dbservice;
 std::string path = "/node3/address";
 std::string node3_address = "localhost:50053";
 
@@ -26,8 +26,12 @@ raichu::server::Status raichu::server::KVServiceImpl::Read(ServerContext *contex
   std::string node3key = "/node3/" + key;
   raichu::server::zk::zoo_rc ret2 = node3_zk.exists_node(node3key.c_str(), nullptr, true);
 
-  response->set_message(node3db->dbRead(key));
-  return Status::OK;
+  if (node3dbservice->commitRequest())
+  {
+    response->set_message(node3dbservice->commitTransactions(raichu::server::dbservice::Op::READ, key));
+    return Status::OK;
+  }
+  return Status::CANCELLED;
 }
 
 raichu::server::Status raichu::server::KVServiceImpl::Put(ServerContext *context, const KVRequest *request,
@@ -38,22 +42,26 @@ raichu::server::Status raichu::server::KVServiceImpl::Put(ServerContext *context
   std::string key = request->key(), value = request->value();
   response->set_message("Put " + key + "-" + value);
 
-  node3db->dbPut(key, value);
-
-  std::string node3key = "/node3/" + key;
-  raichu::server::zk::zoo_rc ret2 = node3_zk.exists_node(node3key.c_str(), nullptr, true);
-  if (ret2 == raichu::server::zk::z_ok)
+  if (node3dbservice->commitRequest())
   {
-    node3_zk.set_node(node3key.c_str(), "1", -1);
+    response->set_message(node3dbservice->commitTransactions(raichu::server::dbservice::Op::PUT, key, value));
+
+    std::string node3key = "/node3/" + key;
+    raichu::server::zk::zoo_rc ret2 = node3_zk.exists_node(node3key.c_str(), nullptr, true);
+    if (ret2 == raichu::server::zk::z_ok)
+    {
+      node3_zk.set_node(node3key.c_str(), "1", -1);
+
+      return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
+    }
+
+    std::vector<raichu::server::zk::zoo_acl_t> acl;
+    acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
+    ret2 = node3_zk.create_persistent_node(node3key.c_str(), "1", acl);
 
     return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
   }
-
-  std::vector<raichu::server::zk::zoo_acl_t> acl;
-  acl.push_back(raichu::server::zk::zk_cpp::create_world_acl(raichu::server::zk::zoo_perm_all));
-  ret2 = node3_zk.create_persistent_node(node3key.c_str(), "1", acl);
-
-  return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
+  return Status::CANCELLED;
 }
 
 raichu::server::Status raichu::server::KVServiceImpl::Delete(ServerContext *context, const KVRequest *request,
@@ -69,14 +77,16 @@ raichu::server::Status raichu::server::KVServiceImpl::Delete(ServerContext *cont
   if (ret2 != raichu::server::zk::z_ok)
     return Status::CANCELLED;
 
-  // db operation
-  response->set_message("delete " + key + "-" + node3db->dbRead(key));
-  node3db->dbDelete(key);
+  if (node3dbservice->commitRequest())
+  {
+    response->set_message(node3dbservice->commitTransactions(raichu::server::dbservice::Op::DELETE, key));
 
-  // zk operation
-  ret2 = node3_zk.delete_node(node3key.c_str(), -1);
+    // zk operation
+    ret2 = node3_zk.delete_node(node3key.c_str(), -1);
+    return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
+  }
 
-  return (ret2 == raichu::server::zk::z_ok) ? Status::OK : Status::CANCELLED;
+  return Status::CANCELLED;
 }
 
 void raichu::server::RunServer(const std::string &address)
@@ -141,7 +151,7 @@ int main(int argc, char **argv)
   if (flag != raichu::server::zk::z_ok)
     return 1;
 
-  node3db.reset(new raichu::server::db::db("node3"));
+  node3dbservice.reset(new raichu::server::dbservice(3));
 
   // node3 server address as localhost:50053
   raichu::server::RunServer(node3_address);

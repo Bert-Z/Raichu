@@ -38,7 +38,7 @@ vpath %.proto $(PROTOS_PATH)
 
 all: node3
 
-node3: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(DBSERVICE_PATH)db.o $(ZK_PATH)zk_cpp.o node3.o
+node3: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(DBSERVICE_PATH)dbservice.o $(DBSERVICE_PATH)db.o $(ZK_PATH)zk_cpp.o node3.o
 	$(CXX) $^ $(LDFLAGS) -o $@ $(LIB) $(INC) 
 
 clean:
