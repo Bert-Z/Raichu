@@ -48,7 +48,7 @@ namespace raichu
 
             int getBackupSize();
             // 2PC protocol
-            // check backups status
+            // propose phase
             bool commitRequest();
             // commit transactions
             std::string commitTransactions(Op op, const std::string &key, const std::string &value = "");
