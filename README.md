@@ -587,9 +587,7 @@ namespace raichu
 
 ##### 1. Introduction
 
-It is a hash algorithm for distributed system. You can find its introduction at 
-
-[here]: https://zhuanlan.zhihu.com/p/34985026
+It is a hash algorithm for distributed system. You can find its introduction at https://zhuanlan.zhihu.com/p/34985026
 
 ![hash](./doc/image/hash.jpg)
 
