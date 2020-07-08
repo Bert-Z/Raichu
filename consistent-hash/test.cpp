@@ -32,7 +32,15 @@ struct crc32_hasher
     {
         boost::crc_32_type ret;
         std::string vnode = node.to_str();
-        std::cout << "vnode:" << vnode << std::endl;
+        // std::cout << "vnode:" << vnode << std::endl;
+        ret.process_bytes(vnode.c_str(), vnode.size());
+        return ret.checksum();
+    }
+    uint32_t operator()(const std::string &key)
+    {
+        boost::crc_32_type ret;
+        std::string vnode = key;
+        // std::cout << "vnode:" << vnode << std::endl;
         ret.process_bytes(vnode.c_str(), vnode.size());
         return ret.checksum();
     }
@@ -44,7 +52,7 @@ int main(int argc, char const *argv[])
     using consistent_hash_t = raichu::hash::consistent_hash_map<vnode_t, crc32_hasher>;
     consistent_hash_t consistent_hash_;
 
-    for (std::size_t i = 0; i < 5; ++i)
+    for (std::size_t i = 0; i < 2; ++i)
     {
         for (std::size_t j = 0; j < 100; j++)
         {
@@ -54,7 +62,7 @@ int main(int argc, char const *argv[])
 
     {
         std::cout << "=========================================================" << std::endl;
-        std::size_t sums[] = {0, 0, 0, 0, 0};
+        std::size_t sums[] = {0, 0};
         consistent_hash_t::iterator i = consistent_hash_.begin();
         consistent_hash_t::reverse_iterator j = consistent_hash_.rbegin();
         std::size_t n = i->first + UINT32_MAX - j->first;
@@ -73,7 +81,7 @@ int main(int argc, char const *argv[])
             priv = cur;
         }
 
-        for (std::size_t i = 0; i < 5; ++i)
+        for (std::size_t i = 0; i < 2; ++i)
         {
             std::cout << boost::format("node:%1% contains:%2%") % nodes[i] % sums[i] << std::endl;
         }
@@ -81,7 +89,7 @@ int main(int argc, char const *argv[])
 
     {
         consistent_hash_t::iterator it;
-        it = consistent_hash_.find(290235110);
+        it = consistent_hash_.find(crc32_hasher().operator()("Hello"));
         std::cout << boost::format("node:%1%,vnode:%2%,hash:%3%") % nodes[it->second.node_id] % it->second.vnode_id % it->first << std::endl;
     }
 

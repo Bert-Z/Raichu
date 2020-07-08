@@ -1,11 +1,66 @@
 #include "../utils/rpcservice/service.h"
 #include "../utils/zk/zk_cpp.h"
+#include <boost/functional/hash.hpp>
+#include <boost/format.hpp>
+#include <boost/crc.hpp>
+#include "../../consistent-hash/consistent-hash.h"
 
 raichu::server::zk::zk_cpp master_zk;
 std::string path2 = "/node2", path3 = "/node3";
+const std::string nodes[] = {
+    "/node2",
+    "/node3"};
 
 using raichu::server::KVServiceImpl;
 using raichu::server::Status;
+
+struct vnode_t
+{
+  vnode_t() {}
+  vnode_t(std::size_t n, std::size_t v) : node_id(n), vnode_id(v) {}
+
+  std::string to_str() const
+  {
+    return boost::str(boost::format("%1%-%2%") % nodes[node_id] % vnode_id);
+  }
+
+  std::size_t node_id;
+  std::size_t vnode_id;
+};
+
+struct crc32_hasher
+{
+  uint32_t operator()(const vnode_t &node)
+  {
+    boost::crc_32_type ret;
+    std::string vnode = node.to_str();
+    ret.process_bytes(vnode.c_str(), vnode.size());
+    return ret.checksum();
+  }
+  uint32_t operator()(std::string &key)
+  {
+    boost::crc_32_type ret;
+    std::string vnode = key;
+    // std::cout << "vnode:" << vnode << std::endl;
+    ret.process_bytes(vnode.c_str(), vnode.size());
+    return ret.checksum();
+  }
+  using result_type = uint32_t;
+};
+
+using consistent_hash_t = raichu::hash::consistent_hash_map<vnode_t, crc32_hasher>;
+consistent_hash_t consistent_hash_;
+
+void consistentHashInit()
+{
+  for (std::size_t i = 0; i < 2; ++i)
+  {
+    for (std::size_t j = 0; j < 100; j++)
+    {
+      consistent_hash_.insert(vnode_t(i, j));
+    }
+  }
+}
 
 std::size_t getNodeSize(const std::string &path)
 {
@@ -30,7 +85,8 @@ Status KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
                             KVResponse *response)
 {
   std::string key = request->key(), value = request->value();
-
+  consistent_hash_t::iterator it = consistent_hash_.find(crc32_hasher().operator()(key));
+  printf("%s\n",(nodes[it->second.node_id] + "/" + key).c_str());
   std::string node2key = "/node2/" + key, node3key = "/node3/" + key;
   raichu::server::zk::zoo_rc ret2 = master_zk.exists_node(node2key.c_str(), nullptr, true);
   raichu::server::zk::zoo_rc ret3 = master_zk.exists_node(node3key.c_str(), nullptr, true);
@@ -47,21 +103,12 @@ Status KVServiceImpl::Where(ServerContext *context, const KVRequest *request,
 
   if (value.size() != 0)
   {
-    std::size_t node2_size = getNodeSize("/node2");
-    std::size_t node3_size = getNodeSize("/node3");
-    if (node2_size <= node3_size)
-    {
-      response->set_message(getNodeAddress("/node2/address"));
-      return Status::OK;
-    }
-    else
-    {
-      response->set_message(getNodeAddress("/node3/address"));
-      return Status::OK;
-    }
+    response->set_message(getNodeAddress(nodes[it->second.node_id] + "/address"));
+    return Status::OK;
   }
   else
   {
+    printf("%s is not exist.\n",key.c_str());
     response->set_message(key + " is not exist.");
     return Status::CANCELLED;
   }
@@ -164,6 +211,9 @@ int main(int argc, char **argv)
   zkinit(flag);
   if (flag != raichu::server::zk::z_ok)
     return 0;
+
+  // consistent hash
+  consistentHashInit();
 
   // master server address as localhost:50051
   raichu::server::RunServer("0.0.0.0:50051");

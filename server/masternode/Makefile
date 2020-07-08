@@ -22,6 +22,8 @@ PROTOS_PATH = ../../rpc-proto/
 
 RPCSERVICE_PATH = ../utils/rpcservice/
 
+HASH = ../../consistent-hash/
+
 OPT = -pipe -fno-ident 
 LDFLAGS+= $(OPT) -g -O0 -Wall -pg -D_GNU_SOURCE -funroll-loops  -D_REENTRANT -lzookeeper_mt 
 
@@ -36,7 +38,7 @@ vpath %.proto $(PROTOS_PATH)
 
 all: master
 
-master: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(ZK_PATH)zk_cpp.o master.o
+master: $(PROTOS_PATH)rpc.pb.o $(PROTOS_PATH)rpc.grpc.pb.o $(RPCSERVICE_PATH)service.h $(HASH)consistent-hash.h $(ZK_PATH)zk_cpp.o master.o
 	$(CXX) $^ $(LDFLAGS) -o $@ $(LIB) $(INC) 
 
 clean:
